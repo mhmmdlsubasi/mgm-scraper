@@ -8,6 +8,7 @@
 from selenium.webdriver.chrome.options import Options
 from selenium import webdriver
 import pandas as pd
+import threading
 import datetime
 import time
 
@@ -15,9 +16,10 @@ def selenium(): #   Webdriver Options...
     options = Options()
     options.binary_location = "C:\Program Files\Google\Chrome Beta\Application\chrome.exe"
     options.add_argument('--no-sandbox')
-    options.add_argument('--headless')
+    #options.add_argument('--headless')
     options.add_argument('--disable-dev-shm-usage')
     browser = webdriver.Chrome(chrome_options = options, executable_path=r"C:\Program Files (x86)\chromedriver.exe")
+
     return browser
 
 def date(next_forecast_date):   #   Time Definition...
@@ -66,7 +68,7 @@ def date(next_forecast_date):   #   Time Definition...
         next_forecast_date_text = next_forecast_date_text.replace(i,j)
     return (current_date_text,next_forecast_date_text,current_time_text)
 
-def log_data(browser,current_time_text,current_date_text):  #   daily forecast
+def log_data(browser,current_time_text,current_date_text):  #   instant data
     #   Web Scraper...
     instant_Temp_C = browser.find_element_by_xpath("//*[@id='pages']/div/section/div[5]/div[1]/div[1]").text
     instant_rainfall = browser.find_element_by_xpath("//*[@id='pages']/div/section/div[5]/div[1]/div[3]/div[2]/div[2]").text
@@ -84,22 +86,30 @@ def daily_forecast_data(browser,current_date_text): #   5 day forecast
     for i in [1,2,3,4,5]:
         #   Web Scraper...
         forecast_date_text = browser.find_element_by_xpath("//*[@id='_4_5gunluk']/table/tbody/tr[{}]/td[1]".format(i)).text
-        forecast_Temp_C_min = browser.find_element_by_xpath("//*[@id='_4_5gunluk']/table/tbody/tr[{}]/td[3]".format(i)).text
-        forecast_Temp_C_max = browser.find_element_by_xpath("//*[@id='_4_5gunluk']/table/tbody/tr[{}]/td[4]".format(i)).text
-        forecast_Humidity_min = browser.find_element_by_xpath("//*[@id='_4_5gunluk']/table/tbody/tr[{}]/td[5]".format(i)).text
-        forecast_Humidity_max = browser.find_element_by_xpath("//*[@id='_4_5gunluk']/table/tbody/tr[{}]/td[6]".format(i)).text
+        forecast_min_Temp_C = browser.find_element_by_xpath("//*[@id='_4_5gunluk']/table/tbody/tr[{}]/td[3]".format(i)).text
+        forecast_max_Temp_C = browser.find_element_by_xpath("//*[@id='_4_5gunluk']/table/tbody/tr[{}]/td[4]".format(i)).text
+        forecast_min_Humidity = browser.find_element_by_xpath("//*[@id='_4_5gunluk']/table/tbody/tr[{}]/td[5]".format(i)).text
+        forecast_max_Humidity = browser.find_element_by_xpath("//*[@id='_4_5gunluk']/table/tbody/tr[{}]/td[6]".format(i)).text
         forecast_Wind_Speed = browser.find_element_by_xpath("//*[@id='_4_5gunluk']/table/tbody/tr[{}]/td[8]".format(i)).text
         #   Add data to list...
         next_forecast_date_text_list.append(current_date_text)
         forecast_date_text_list.append(forecast_date_text)
-        forecast_min_Temp_C_list.append(forecast_Temp_C_min)
-        forecast_min_Temp_C_list.append(forecast_Temp_C_max)
-        forecast_min_Humidity_list.append(forecast_Humidity_min)
-        forecast_max_Humidity_list.append(forecast_Humidity_max)
+        forecast_min_Temp_C_list.append(forecast_min_Temp_C)
+        forecast_max_Temp_C_list.append(forecast_max_Temp_C)
+        forecast_min_Humidity_list.append(forecast_min_Humidity)
+        forecast_max_Humidity_list.append(forecast_max_Humidity)
         forecast_Wind_Speed_list.append(forecast_Wind_Speed) 
 
-def main(il,ilce,browser=selenium(),last_date_check=None): 
+def main(il,ilce,browser=selenium(),last_date_check=None):
+    url="https://mgm.gov.tr/tahmin/il-ve-ilceler.aspx?" 
+    if ilce=="":
+        url += "il=" + il
+    else:
+        url += "il=" + il + "&" + "ilce=" + ilce
+
     browser.get(url)    #   open browser with link
+    next_forecast_date = datetime.datetime.now() + datetime.timedelta(days = 1)
+    next_forecast_date_text = date(next_forecast_date)[1]
     while True:
         browser.refresh()
         time.sleep(10)
@@ -152,6 +162,12 @@ def main(il,ilce,browser=selenium(),last_date_check=None):
                 log_df = pd.DataFrame(log)
                 forecast_df = pd.DataFrame(forecast)
                 
+                #log_df["Temp_C"] = log_df["Temp_C"].astype(float)
+                #log_df["Humidity"] = log_df["Humidity"].astype(int)
+
+                #forecast_df["min_Temp_C"] = forecast_df["min_Temp_C","max_Temp_C"].astype(float)
+                #forecast_df["min_Humidity"] = forecast_df["min_Humidity"].astype(int)
+
                 log_df.replace(to_replace=",",value=".",inplace=True)
                 forecast_df.replace(to_replace=",",value=".",inplace=True)
 
@@ -163,6 +179,7 @@ def main(il,ilce,browser=selenium(),last_date_check=None):
         else:
             print("Güncelleme saati henüz gelmedi. Lütfen güncelleme saatini bekleyiniz.")
             time.sleep(60) # Update time control period
+    browser.close()
 
 #   list:
 log_data_Temp_C_list = []
@@ -174,33 +191,16 @@ current_date_text_list = []
 next_forecast_date_text_list = []
 forecast_date_text_list = []
 forecast_min_Temp_C_list = []
-forecast_min_Temp_C_list = []
+forecast_max_Temp_C_list = []
 forecast_min_Humidity_list = []
 forecast_max_Humidity_list = []
 forecast_Wind_Speed_list = []
 #   var:
-next_forecast_date = datetime.datetime.now() + datetime.timedelta(days = 1)
-next_forecast_date_text = date(next_forecast_date)[1]
-
 #------------------------------
-'''
 location = {
     "Sinop":"",
     "Samsun":"",
     "Amasya":"",
     "Ordu":""
     }
-for il,ilce in location.items():
-'''
-
-il="Samsun"
-ilce=""
-
-url="https://mgm.gov.tr/tahmin/il-ve-ilceler.aspx?"
-    
-if ilce=="":
-        url += "il=" + il
-else:
-        url += "il=" + il + "&" + "ilce=" + ilce
-
-main(il,ilce)
+main("Samsun","")
