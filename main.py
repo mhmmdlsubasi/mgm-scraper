@@ -41,11 +41,6 @@ def log_data(browser,current_time_text,current_date_text):
     anlik_rainfall = browser.find_element_by_xpath("//*[@id='pages']/div/section/div[5]/div[1]/div[3]/div[2]/div[2]").text
     anlik_moisture = browser.find_element_by_xpath("//*[@id='pages']/div/section/div[5]/div[2]/div[1]/div[2]/div[2]").text
     anlik_Wind_Speed = browser.find_element_by_xpath("//*[@id='pages']/div/section/div[5]/div[2]/div[2]/div[2]/div[2]").text
-    # Virgülleri nokta olacak şekilde değiştir.    
-    anlik_Temp_C = anlik_Temp_C.replace(",",".")
-    anlik_rainfall = anlik_rainfall.replace(",",".")
-    anlik_moisture = anlik_moisture.replace(",",".")
-    anlik_Wind_Speed = anlik_Wind_Speed.replace(",",".")
     # Elde edilen verileri listeye ekle.
     current_data_time_text.append(current_time_text)
     current_data_date_text.append(current_date_text)
@@ -62,12 +57,6 @@ def Forecast_data(browser,current_date_text):
         Forecast_Moisture_min = browser.find_element_by_xpath("//*[@id='_4_5gunluk']/table/tbody/tr[{}]/td[5]".format(i)).text
         Forecast_Moisture_max = browser.find_element_by_xpath("//*[@id='_4_5gunluk']/table/tbody/tr[{}]/td[6]".format(i)).text
         Forecast_Wind_Speed = browser.find_element_by_xpath("//*[@id='_4_5gunluk']/table/tbody/tr[{}]/td[8]".format(i)).text
-        # Virgülleri nokta olacak şekilde değiştir.
-        Forecast_Temp_C_min = Forecast_Temp_C_min.replace(",",".")
-        Forecast_Temp_C_max = Forecast_Temp_C_max.replace(",",".")
-        Forecast_Moisture_min = Forecast_Moisture_min.replace(",",".")
-        Forecast_Moisture_max = Forecast_Moisture_max.replace(",",".")
-        Forecast_Wind_Speed = Forecast_Wind_Speed.replace(",",".")
         # Elde edilen verileri listeye ekle.
         current_data_date_2_text.append(current_date_text)
         Forecast_data_date_text.append(Forecast_date_text)
@@ -138,6 +127,9 @@ def web_scraber(il,ilce,browser=selenium(),anlik_veri_zamani_2=0):
                 logs = pd.DataFrame(logs_dict)
                 Forecasts = pd.DataFrame(Forecast_dict)
                 
+                logs.replace(to_replace=",",value=".",inplace=True)
+                Forecasts.replace(to_replace=",",value=".",inplace=True)
+
                 logs.to_excel("logs.xlsx",index=False)
                 Forecasts.to_excel("Forecasts.xlsx",index=False)
                 
