@@ -1,5 +1,12 @@
 import requests
 import pandas as pd
+from datetime import datetime
+import time
+
+def datetime_from_utc_to_local(utc_datetime):
+    now_timestamp = time.time()
+    offset = datetime.fromtimestamp(now_timestamp) - datetime.utcfromtimestamp(now_timestamp)
+    return utc_datetime + offset
 
 mgm_url = "https://www.mgm.gov.tr/"
 iller = "https://servis.mgm.gov.tr/web/merkezler/iller"
@@ -47,12 +54,14 @@ while True:
 
                 last_check[city] = a[0]
 
+                timer = str(datetime_from_utc_to_local(datetime.strptime(last_check[city],"%Y-%m-%dT%H:%M:%S.%fZ")))
+                date = timer.split()[0]
+                clock = timer.split()[1]
+                
                 f = open(f"{city}_log.csv","a")
-                f.write(f"{a[1]},{a[2]},{a[3]},{a[4]} \n")
+                f.write(f"{date},{clock},{a[1]},{a[2]},{a[3]},{a[4]} \n")
                 f.close()
-            else:
-                print("no update received")
-                print(f"last check date: {last_check}")
-                print("-"*200)
+
+                print(f"instant data requests successful for {city} \n {timer}")
         else:
             print("instant_data_requests failed")
