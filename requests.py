@@ -17,19 +17,6 @@ def data():
     else:
         print("data_requests failed")
     return dict1
-
-location = {
-    "Sinop":"",
-    "Samsun":"",
-    "Amasya":"",
-    "Ordu":""
-}
-dict1=data()
-last_check={"Sinop":"",
-    "Samsun":"",
-    "Amasya":"",
-    "Ordu":""}
-
 def instant_data():
     last_check = instant_data_requests[0]["veriZamani"]
     sicaklik = instant_data_requests[0]["sicaklik"]
@@ -37,9 +24,19 @@ def instant_data():
     nem = instant_data_requests[0]["nem"]
     ruzgarhiz = instant_data_requests[0]["ruzgarHiz"]
     return [last_check,sicaklik,yagis,nem,ruzgarhiz]
- 
+
+dict1=data()
+
+location = {
+    "Sinop":"",
+    "Samsun":"",
+    "Amasya":"",
+    "Ordu":""
+}
+last_check = location
+
 while True:
-    for city, veri in location.items():
+    for city in location.keys():
 
         params = {"istno":dict1[city]}
         instant_data_requests = requests.get(f"{instant_url}", params=params, headers={"Origin":f"{mgm_url}"}).json()
@@ -59,5 +56,3 @@ while True:
                 print("-"*200)
         else:
             print("instant_data_requests failed")
-            
-
