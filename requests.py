@@ -18,15 +18,17 @@ def data():
     if data_requests:
         dict1 = {}
         dict2 = {}
+        dict3 = {}
         for i in range(0,81):
             keys = data_requests[i]["il"]
             instant_values = data_requests[i]["sondurumIstNo"]
             dict1.setdefault(keys,instant_values)
             daily_values = data_requests[i]["gunlukTahminIstNo"]
             dict2.setdefault(keys,daily_values)
+            dict3.setdefault(keys,"")
     else:
         print("data_requests failed")
-    return dict1,dict2
+    return dict1,dict2,dict3
 
 def instant_data_requests(city,instant_data_requests):
     last_check = instant_data_requests[0]["veriZamani"]
@@ -56,24 +58,9 @@ def forecast_data_requests(city,forecast_data_requests,i):
 city_instant_istno_dict=data()[0]
 city_daily_istno_dict = data()[1]
 
-location = {
-    "Sinop":"",
-    "Samsun":"",
-    "Amasya":"",
-    "Ordu":""
-}
-instant_last_check = {
-    "Sinop":"",
-    "Samsun":"",
-    "Amasya":"",
-    "Ordu":""
-}
-forecast_last_check = {
-    "Sinop":"",
-    "Samsun":"",
-    "Amasya":"",
-    "Ordu":""
-}
+location = data()[2]    #   Çalışma Alanı
+instant_last_check = location.copy()
+forecast_last_check = location.copy()
 
 forecast_df = pd.DataFrame(columns=["İl","İstasyon Numarası","Tarih","Saat","Min. Sıcaklık (C)","Max. Sıcaklık (C)","Min. Nem (%)","Max. Nem (%)","Rüzgar Hızı (km/s)"]) 
 instant_df = pd.DataFrame(columns=["İl","İstasyon Numarası","Tarih","Saat","Sıcaklık (C)","Yağış Miktarı (mm)","Nem (%)","Rüzgar Hızı (km/s)"]) 
