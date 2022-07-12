@@ -247,9 +247,6 @@ hourly_forecast_df = pd.DataFrame(
         ]
         )
 
-params = {"istno":city_hourly_forecast_istno_dict[city]}
-hourly_forecast_data_r = requests.get(f"{hourly_forecast_url}", params=params, headers={"Origin":f"{mgm_url}"}).json()
-
 flag = True
 while True:
     if flag:
