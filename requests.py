@@ -77,7 +77,6 @@ def instant(city):
 
             instant_datas = [instant_data[0],city_instant_istno_dict[city],instant_data[3],instant_data[4],instant_data[5],instant_data[6],instant_data[7],instant_data[8]]
             instant_df.loc[len(instant_df.index)] = instant_datas
-            instant_df[instant_df["İl"]==city].to_csv(f"{city}_instant_df.csv",index=False)
 
             print(f"instant data requests successful for {city} \n {instant_data[3]},{instant_data[4]}")
     else:
@@ -95,7 +94,6 @@ def forecast(city):
                 forecast_data = forecast_data_requests(city,forecast_data_r,i)
                 forecasts = [forecast_data[0],city_instant_istno_dict[city],forecast_data[3],forecast_data[4],forecast_data[5],forecast_data[6],forecast_data[7],forecast_data[8],forecast_data[9]]
                 forecast_df.loc[len(forecast_df.index)] = forecasts
-                forecast_df[forecast_df["İl"]==city].to_csv(f"{city}_forecast_df.csv",index=False)
 
             print(f"forecast data requests successful for {city} \n {forecast_data[3]},{forecast_data[4]}")
     else:
@@ -105,3 +103,6 @@ while True:
     for city in location.keys():
         instant(city)
         forecast(city)
+        with pd.ExcelWriter(f'{city}.xlsx') as writer:  
+            instant_df[instant_df["İl"]==city].to_excel(writer, sheet_name='Instant',index=False)
+            forecast_df[forecast_df["İl"]==city].to_excel(writer, sheet_name='Forecast',index=False)
