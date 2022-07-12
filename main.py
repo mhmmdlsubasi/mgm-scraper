@@ -129,7 +129,7 @@ def hourly_forecast(city):
         if hourly_forecast_data[1] != hourly_forecast_last_check[city]:
                 
             hourly_forecast_last_check[city] = hourly_forecast_data[1]
-            for i in range(0,len(hourly_forecast_data_r[0]["tahmin"])+1):
+            for i in range(0,len(hourly_forecast_data_r[0]["tahmin"])):
                 hourly_forecast_data = hourly_forecast_data_requests(city,hourly_forecast_data_r,i)
                 hourly_forecasts = [
                     hourly_forecast_data[0],
@@ -208,16 +208,16 @@ hourly_forecast_last_check = location.copy()
 
 instant_df = pd.DataFrame(
     columns=[
-    "İl",
-"İstasyon Numarası",
-"Tarih",
-"Saat",
-"Sıcaklık (C)",
-"Yağış Miktarı (mm)",
-"Nem (%)",
-"Rüzgar Hızı (km/s)"
-]
-) 
+        "İl",
+        "İstasyon Numarası",
+        "Tarih",
+        "Saat",
+        "Sıcaklık (C)",
+        "Yağış Miktarı (mm)",
+        "Nem (%)",
+        "Rüzgar Hızı (km/s)"
+        ]
+        ) 
 daily_forecast_df = pd.DataFrame(
     columns=[
         "İl",
