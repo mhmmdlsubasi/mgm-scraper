@@ -129,20 +129,20 @@ def hourly_forecast(city):
         if hourly_forecast_data[1] != hourly_forecast_last_check[city]:
                 
             hourly_forecast_last_check[city] = hourly_forecast_data[1]
-            for i in [1,2,3,4,5,6,7,8,9]:
+            for i in range(0,len(hourly_forecast_data_r[0]["tahmin"])+1):
                 hourly_forecast_data = hourly_forecast_data_requests(city,hourly_forecast_data_r,i)
                 hourly_forecasts = [
                     hourly_forecast_data[0],
                     city_hourly_forecast_istno_dict[city],
                     hourly_forecast_data[3],
-                    hourly_forecast_data[4],
-                    hourly_forecast_data[7],
                     hourly_forecast_data[8],
                     hourly_forecast_data[9],
                     hourly_forecast_data[10],
                     hourly_forecast_data[11],
                     hourly_forecast_data[12],
-                    hourly_forecast_data[13]
+                    hourly_forecast_data[13],
+                    hourly_forecast_data[14],
+                    hourly_forecast_data[15]
                     ]
                 hourly_forecast_df.loc[len(hourly_forecast_df.index)] = hourly_forecasts
                 
@@ -237,7 +237,7 @@ hourly_forecast_df = pd.DataFrame(
         "İstasyon Numarası",
         "Tarih",
         "Saat",
-        "Beklenen Hadise"
+        "Beklenen Hadise",
         "Sıcaklık (°C)",
         "Hissedilen Sıcaklık (°C)",
         "Nem (%)",
@@ -247,16 +247,26 @@ hourly_forecast_df = pd.DataFrame(
         ]
         )
 
+params = {"istno":city_hourly_forecast_istno_dict[city]}
+hourly_forecast_data_r = requests.get(f"{hourly_forecast_url}", params=params, headers={"Origin":f"{mgm_url}"}).json()
+
+flag = True
 while True:
-    for city in location.keys():
-        instant(city)
-        daily_forecast(city)
-        with pd.ExcelWriter(f'{city}.xlsx') as writer:  
-            instant_df[instant_df["İl"]==city].to_excel(
-                writer, 
-            sheet_name='Instant',index=False
-            )
-            daily_forecast_df[daily_forecast_df["İl"]==city].to_excel(
-                writer, 
-            sheet_name='Forecast',index=False
-            )
+    if flag:
+        for city in location.keys():
+            instant(city)
+            daily_forecast(city)
+            hourly_forecast(city)
+            with pd.ExcelWriter(f'{city}.xlsx') as writer:  
+                instant_df[instant_df["İl"]==city].to_excel(
+                    writer, 
+                sheet_name='Instant',index=False
+                )
+                daily_forecast_df[daily_forecast_df["İl"]==city].to_excel(
+                    writer, 
+                sheet_name='Daily Forecast',index=False
+                )
+                hourly_forecast_df[hourly_forecast_df["İl"]==city].to_excel(
+                    writer, 
+                sheet_name='Hourly Forecast',index=False
+                )
