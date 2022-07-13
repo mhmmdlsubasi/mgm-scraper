@@ -1,15 +1,25 @@
-import requests
-import pandas as pd
+from requests.packages.urllib3.util.retry import Retry
+from requests.adapters import HTTPAdapter
 from datetime import datetime
+import pandas as pd
+import requests
 import time
 
+session = requests.Session()
+retry = Retry(connect=3, backoff_factor=1)
+adapter = HTTPAdapter(max_retries=retry)
+session.mount('http://', adapter)
+session.mount('https://', adapter)
+
+#   time converter
 def datetime_from_utc_to_local(utc_datetime):
     now_timestamp = time.time()
     offset = datetime.fromtimestamp(now_timestamp) - datetime.utcfromtimestamp(now_timestamp)
     return utc_datetime + offset
 
+#   istno
 def data():
-    data_requests = requests.get(f"{iller}", headers={"Origin":f"{mgm_url}"}).json()
+    data_requests = session.get(f"{iller}", headers={"Origin":f"{mgm_url}"}).json()
     if data_requests:
         dict0 = {}
         dict1 = {}
@@ -31,9 +41,10 @@ def data():
         print("data_requests failed")
     return dict0,dict1,dict2,dict3
 
+# instant
 def instant(city):
     params = {"istno":city_instant_istno_dict[city]}
-    instant_data_r = requests.get(f"{instant_url}", params=params, headers={"Origin":f"{mgm_url}"}).json()
+    instant_data_r = session.get(f"{instant_url}", params=params, headers={"Origin":f"{mgm_url}"}).json()
     if instant_data_r:
         instant_data=instant_data_requests(city,instant_data_r)
 
@@ -41,7 +52,20 @@ def instant(city):
 
             instant_last_check[city] = instant_data[1]
 
-            instant_datas = [instant_data[0],city_instant_istno_dict[city],instant_data[3],instant_data[4],instant_data[5],instant_data[6],instant_data[7],instant_data[8]]
+            instant_datas = [
+                instant_data[0],
+                city_instant_istno_dict[city],
+                instant_data[3],
+                instant_data[4],
+                instant_data[5],
+                instant_data[6],
+                instant_data[7],
+                instant_data[8],
+                instant_data[9],
+                instant_data[10],
+                instant_data[11],
+                instant_data[12]
+                ]
             instant_df.loc[len(instant_df.index)] = instant_datas
 
             print(f"instant data requests successful for {city} \n {instant_data[3]},{instant_data[4]}")
@@ -50,9 +74,13 @@ def instant(city):
 def instant_data_requests(city,instant_data_requests):
     last_check = instant_data_requests[0]["veriZamani"]
     sicaklik = instant_data_requests[0]["sicaklik"]
+    hadise = instant_data_requests[0]["hadiseKodu"]
     yagis = instant_data_requests[0]["yagis00Now"]
     nem = instant_data_requests[0]["nem"]
+    ruzgarYon = instant_data_requests[0]["ruzgarYon"]
     ruzgarhiz = instant_data_requests[0]["ruzgarHiz"]
+    aktuelBasinc = instant_data_requests[0]["aktuelBasinc"]
+    denizeIndirgenmisBasinc = instant_data_requests[0]["denizeIndirgenmisBasinc"]
 
     timer = str(datetime_from_utc_to_local(datetime.strptime(last_check,"%Y-%m-%dT%H:%M:%S.%fZ")))
     date = timer.split()[0]
@@ -60,69 +88,23 @@ def instant_data_requests(city,instant_data_requests):
     return [
         city,
         last_check,
-        timer,date,
+        timer,
+        date,
         clock,
         sicaklik,
+        hadise,
         yagis,
         nem,
-        ruzgarhiz
+        ruzgarYon,
+        ruzgarhiz,
+        aktuelBasinc,
+        denizeIndirgenmisBasinc
         ]
 
-def daily_forecast(city):
-    params = {"istno":city_daily_forecast_istno_dict[city]}
-    daily_forecast_data_r = requests.get(f"{daily_forecast_url}", params=params, headers={"Origin":f"{mgm_url}"}).json()
-    if daily_forecast_data_r:
-        daily_forecast_data = daily_forecast_data_requests(city,daily_forecast_data_r,1)
-
-        if daily_forecast_data[1] != daily_forecast_last_check[city]:
-                
-            daily_forecast_last_check[city] = daily_forecast_data[1]
-            for i in [1,2,3,4,5]:
-                daily_forecast_data = daily_forecast_data_requests(city,daily_forecast_data_r,i)
-                daily_forecasts = [
-                    daily_forecast_data[0],
-                    city_instant_istno_dict[city],
-                    daily_forecast_data[3],
-                    daily_forecast_data[4],
-                    daily_forecast_data[5],
-                    daily_forecast_data[6],
-                    daily_forecast_data[7],
-                    daily_forecast_data[8],
-                    daily_forecast_data[9]
-                    ]
-                daily_forecast_df.loc[len(daily_forecast_df.index)] = daily_forecasts
-
-            print(f"daily forecast data requests successful for {city} \n {daily_forecast_data[3]},{daily_forecast_data[4]}")
-    else:
-        print("daily forecast data requests failed")
-def daily_forecast_data_requests(city,daily_forecast_data_requests,i):
-    
-    daily_forecast_last_check = daily_forecast_data_requests[0][f"tarihGun{i}"]
-    daily_forecast_min_sicaklik = daily_forecast_data_requests[0][f"enDusukGun{i}"]
-    daily_forecast_max_sicaklik = daily_forecast_data_requests[0][f"enYuksekGun{i}"]
-    daily_forecast_min_nem = daily_forecast_data_requests[0][f"enDusukNemGun{i}"]
-    daily_forecast_max_nem = daily_forecast_data_requests[0][f"enYuksekNemGun{i}"]
-    daily_forecast_ruzgarhiz = daily_forecast_data_requests[0][f"ruzgarHizGun{i}"]
-
-    daily_forecast_timer = str(datetime_from_utc_to_local(datetime.strptime(daily_forecast_last_check,"%Y-%m-%dT%H:%M:%S.%fZ")))
-    daily_forecast_date = daily_forecast_timer.split()[0]
-    daily_forecast_clock = daily_forecast_timer.split()[1]
-    return [
-        city,
-        daily_forecast_last_check,
-        daily_forecast_timer,
-        daily_forecast_date,
-        daily_forecast_clock,
-        daily_forecast_min_sicaklik,
-        daily_forecast_max_sicaklik,
-        daily_forecast_min_nem,
-        daily_forecast_max_nem,
-        daily_forecast_ruzgarhiz
-        ]
-
+#   hourly forecast
 def hourly_forecast(city):
     params = {"istno":city_hourly_forecast_istno_dict[city]}
-    hourly_forecast_data_r = requests.get(f"{hourly_forecast_url}", params=params, headers={"Origin":f"{mgm_url}"}).json()
+    hourly_forecast_data_r = session.get(f"{hourly_forecast_url}", params=params, headers={"Origin":f"{mgm_url}"}).json()
     if hourly_forecast_data_r:
         hourly_forecast_data = hourly_forecast_data_requests(city,hourly_forecast_data_r,1)
 
@@ -188,34 +170,100 @@ def hourly_forecast_data_requests(city,hourly_forecast_data_requests,i):
         hourly_forecast_max_ruzgarhiz
         ]
 
-    
+#   daily forecast
+def daily_forecast(city):
+    params = {"istno":city_daily_forecast_istno_dict[city]}
+    daily_forecast_data_r = session.get(f"{daily_forecast_url}", params=params, headers={"Origin":f"{mgm_url}"}).json()
+    if daily_forecast_data_r:
+        daily_forecast_data = daily_forecast_data_requests(city,daily_forecast_data_r,1)
 
+        if daily_forecast_data[1] != daily_forecast_last_check[city]:
+                
+            daily_forecast_last_check[city] = daily_forecast_data[1]
+            for i in [1,2,3,4,5]:
+                daily_forecast_data = daily_forecast_data_requests(city,daily_forecast_data_r,i)
+                daily_forecasts = [
+                    daily_forecast_data[0],
+                    city_instant_istno_dict[city],
+                    daily_forecast_data[3],
+                    daily_forecast_data[4],
+                    daily_forecast_data[5],
+                    daily_forecast_data[6],
+                    daily_forecast_data[7],
+                    daily_forecast_data[8],
+                    daily_forecast_data[9],
+                    daily_forecast_data[10],
+                    daily_forecast_data[11]
+                    ]
+                daily_forecast_df.loc[len(daily_forecast_df.index)] = daily_forecasts
+
+            print(f"daily forecast data requests successful for {city} \n {daily_forecast_data[3]},{daily_forecast_data[4]}")
+    else:
+        print("daily forecast data requests failed")
+def daily_forecast_data_requests(city,daily_forecast_data_requests,i):
+    
+    daily_forecast_last_check = daily_forecast_data_requests[0][f"tarihGun{i}"]
+    daily_forecast_hadise = daily_forecast_data_requests[0][f"hadiseGun{i}"]
+    daily_forecast_min_sicaklik = daily_forecast_data_requests[0][f"enDusukGun{i}"]
+    daily_forecast_max_sicaklik = daily_forecast_data_requests[0][f"enYuksekGun{i}"]
+    daily_forecast_min_nem = daily_forecast_data_requests[0][f"enDusukNemGun{i}"]
+    daily_forecast_max_nem = daily_forecast_data_requests[0][f"enYuksekNemGun{i}"]
+    daily_forecast_ruzgaryon = daily_forecast_data_requests[0][f"ruzgarYonGun{i}"]
+    daily_forecast_ruzgarhiz = daily_forecast_data_requests[0][f"ruzgarHizGun{i}"]
+
+    daily_forecast_timer = str(datetime_from_utc_to_local(datetime.strptime(daily_forecast_last_check,"%Y-%m-%dT%H:%M:%S.%fZ")))
+    daily_forecast_date = daily_forecast_timer.split()[0]
+    daily_forecast_clock = daily_forecast_timer.split()[1]
+    return [
+        city,
+        daily_forecast_last_check,
+        daily_forecast_timer,
+        daily_forecast_date,
+        daily_forecast_clock,
+        daily_forecast_hadise,
+        daily_forecast_min_sicaklik,
+        daily_forecast_max_sicaklik,
+        daily_forecast_min_nem,
+        daily_forecast_max_nem,
+        daily_forecast_ruzgaryon,
+        daily_forecast_ruzgarhiz
+        ]
+
+#   request links
 mgm_url = "https://www.mgm.gov.tr/"
 iller = "https://servis.mgm.gov.tr/web/merkezler/iller"
 instant_url = "https://servis.mgm.gov.tr/web/sondurumlar?"
 daily_forecast_url = "https://servis.mgm.gov.tr/web/tahminler/gunluk?"
 hourly_forecast_url = "https://servis.mgm.gov.tr/web/tahminler/saatlik?"
 
+#   create istno dict
 city_instant_istno_dict=data()[1]
 city_daily_forecast_istno_dict = data()[2]
 city_hourly_forecast_istno_dict = data()[3]
 
-location = data()[2]    #   Çalışma Alanı
+#   create working area
+location = data()[2]
 
+#   create last check dict
 instant_last_check = location.copy()
 daily_forecast_last_check = location.copy()
 hourly_forecast_last_check = location.copy()
 
+#   create empty DataFrame
 instant_df = pd.DataFrame(
     columns=[
         "İl",
         "İstasyon Numarası",
         "Tarih",
         "Saat",
-        "Sıcaklık (C)",
+        "Sıcaklık (°C)",
+        "Hadise",
         "Yağış Miktarı (mm)",
         "Nem (%)",
-        "Rüzgar Hızı (km/s)"
+        "Rüzgar Yönü",
+        "Rüzgar Hızı (km/sa)",
+        "A. Basınç",
+        "D.İ.Basınç"
         ]
         ) 
 daily_forecast_df = pd.DataFrame(
@@ -224,11 +272,13 @@ daily_forecast_df = pd.DataFrame(
         "İstasyon Numarası",
         "Tarih",
         "Saat",
-        "Min. Sıcaklık (C)",
-        "Max. Sıcaklık (C)",
+        "Hadise",
+        "Min. Sıcaklık (°C)",
+        "Max. Sıcaklık (°C)",
         "Min. Nem (%)",
         "Max. Nem (%)",
-        "Rüzgar Hızı (km/s)"
+        "Rüzgar Yönü",
+        "Rüzgar Hızı (km/sa)"
         ]
         ) 
 hourly_forecast_df = pd.DataFrame(
@@ -252,18 +302,18 @@ while True:
     if flag:
         for city in location.keys():
             instant(city)
-            daily_forecast(city)
             hourly_forecast(city)
+            daily_forecast(city)
             with pd.ExcelWriter(f'{city}.xlsx') as writer:  
                 instant_df[instant_df["İl"]==city].to_excel(
                     writer, 
                 sheet_name='Instant',index=False
                 )
-                daily_forecast_df[daily_forecast_df["İl"]==city].to_excel(
-                    writer, 
-                sheet_name='Daily Forecast',index=False
-                )
                 hourly_forecast_df[hourly_forecast_df["İl"]==city].to_excel(
                     writer, 
                 sheet_name='Hourly Forecast',index=False
+                )
+                daily_forecast_df[daily_forecast_df["İl"]==city].to_excel(
+                    writer, 
+                sheet_name='Daily Forecast',index=False
                 )
