@@ -1,6 +1,7 @@
 from requests.packages.urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
-from datetime import datetime
+from datetime import datetime, timedelta
+#from google.colab import drive
 import pandas as pd
 import requests
 import time
@@ -82,9 +83,9 @@ def instant_data_requests(city,instant_data_requests):
     aktuelBasinc = instant_data_requests[0]["aktuelBasinc"]
     denizeIndirgenmisBasinc = instant_data_requests[0]["denizeIndirgenmisBasinc"]
 
-    timer = str(datetime_from_utc_to_local(datetime.strptime(last_check,"%Y-%m-%dT%H:%M:%S.%fZ")))
-    date = timer.split()[0]
-    clock = timer.split()[1]
+    timer = datetime_from_utc_to_local(datetime.strptime(last_check,"%Y-%m-%dT%H:%M:%S.%fZ"))
+    date = format(timer,"%d/%m/%Y")
+    clock = format(timer,"%H:%M:%S")
     return [
         city,
         last_check,
@@ -119,12 +120,15 @@ def hourly_forecast(city):
                     hourly_forecast_data[3],
                     hourly_forecast_data[8],
                     hourly_forecast_data[9],
+                    hourly_forecast_data[7],
                     hourly_forecast_data[10],
                     hourly_forecast_data[11],
                     hourly_forecast_data[12],
                     hourly_forecast_data[13],
                     hourly_forecast_data[14],
-                    hourly_forecast_data[15]
+                    hourly_forecast_data[15],
+                    hourly_forecast_data[16],
+
                     ]
                 hourly_forecast_df.loc[len(hourly_forecast_df.index)] = hourly_forecasts
                 
@@ -144,13 +148,14 @@ def hourly_forecast_data_requests(city,hourly_forecast_data_requests,i):
     hourly_forecast_ruzgarhiz = hourly_forecast_data_requests[0]["tahmin"][i]["ruzgarHizi"]
     hourly_forecast_max_ruzgarhiz = hourly_forecast_data_requests[0]["tahmin"][i]["maksimumRuzgarHizi"]
 
-    hourly_forecast_last_check_convert = str(datetime_from_utc_to_local(datetime.strptime(hourly_forecast_last_check,"%Y-%m-%dT%H:%M:%S.%fZ")))
-    hourly_forecast_last_check_date = hourly_forecast_last_check_convert.split()[0]
-    hourly_forecast_last_check_clock = hourly_forecast_last_check_convert.split()[1]
+    hourly_forecast_last_check_convert = datetime_from_utc_to_local(datetime.strptime(hourly_forecast_last_check,"%Y-%m-%dT%H:%M:%S.%fZ"))
+    hourly_forecast_last_check_date = format(hourly_forecast_last_check_convert,"%d/%m/%Y")
+    hourly_forecast_last_check_clock = format(hourly_forecast_last_check_convert,"%H:%M:%S")
 
-    hourly_forecast_tarih_convert = str(datetime_from_utc_to_local(datetime.strptime(hourly_forecast_tarih,"%Y-%m-%dT%H:%M:%S.%fZ")))
-    hourly_forecast_tarih_date = hourly_forecast_tarih_convert.split()[0]
-    hourly_forecast_tarih_clock = hourly_forecast_tarih_convert.split()[1]
+    hourly_forecast_tarih_convert = datetime_from_utc_to_local(datetime.strptime(hourly_forecast_tarih,"%Y-%m-%dT%H:%M:%S.%fZ"))
+    hourly_forecast_tarih_date = format(hourly_forecast_tarih_convert,"%d/%m/%Y")
+    hourly_forecast_tarih_baslangic_clock = format(hourly_forecast_tarih_convert - timedelta(hours=3),"%H:%M:%S")
+    hourly_forecast_tarih_bitis_clock = format(hourly_forecast_tarih_convert,"%H:%M:%S")
     return [
         city,
         hourly_forecast_last_check,
@@ -160,7 +165,8 @@ def hourly_forecast_data_requests(city,hourly_forecast_data_requests,i):
         hourly_forecast_tarih,
         hourly_forecast_tarih_convert,
         hourly_forecast_tarih_date,
-        hourly_forecast_tarih_clock,
+        hourly_forecast_tarih_baslangic_clock,
+        hourly_forecast_tarih_bitis_clock,
         hourly_forecast_hadise,
         hourly_forecast_sicaklik,
         hourly_forecast_hissedilen_sicaklik,
@@ -185,8 +191,9 @@ def daily_forecast(city):
                 daily_forecasts = [
                     daily_forecast_data[0],
                     city_instant_istno_dict[city],
-                    daily_forecast_data[3],
+                    format(daily_forecast_data_requests(city,daily_forecast_data_r,1)[2] - timedelta(days=1),"%d-%m-%Y"),
                     daily_forecast_data[4],
+                    daily_forecast_data[3],
                     daily_forecast_data[5],
                     daily_forecast_data[6],
                     daily_forecast_data[7],
@@ -196,6 +203,7 @@ def daily_forecast(city):
                     daily_forecast_data[11]
                     ]
                 daily_forecast_df.loc[len(daily_forecast_df.index)] = daily_forecasts
+
 
             print(f"daily forecast data requests successful for {city} \n {daily_forecast_data[3]},{daily_forecast_data[4]}")
     else:
@@ -211,9 +219,9 @@ def daily_forecast_data_requests(city,daily_forecast_data_requests,i):
     daily_forecast_ruzgaryon = daily_forecast_data_requests[0][f"ruzgarYonGun{i}"]
     daily_forecast_ruzgarhiz = daily_forecast_data_requests[0][f"ruzgarHizGun{i}"]
 
-    daily_forecast_timer = str(datetime_from_utc_to_local(datetime.strptime(daily_forecast_last_check,"%Y-%m-%dT%H:%M:%S.%fZ")))
-    daily_forecast_date = daily_forecast_timer.split()[0]
-    daily_forecast_clock = daily_forecast_timer.split()[1]
+    daily_forecast_timer = datetime_from_utc_to_local(datetime.strptime(daily_forecast_last_check,"%Y-%m-%dT%H:%M:%S.%fZ"))
+    daily_forecast_date = format(daily_forecast_timer,"%d/%m/%Y")
+    daily_forecast_clock = format(daily_forecast_timer,"%H:%M:%S")
     return [
         city,
         daily_forecast_last_check,
@@ -272,6 +280,7 @@ daily_forecast_df = pd.DataFrame(
         "İstasyon Numarası",
         "Tarih",
         "Saat",
+        "Tahmin Tarihi",
         "Hadise",
         "Min. Sıcaklık (°C)",
         "Max. Sıcaklık (°C)",
@@ -286,7 +295,9 @@ hourly_forecast_df = pd.DataFrame(
         "İl",
         "İstasyon Numarası",
         "Tarih",
-        "Saat",
+        "Başlangıç Saati",
+        "Bitiş Saati",
+        "Tahmin Tarihi",
         "Beklenen Hadise",
         "Sıcaklık (°C)",
         "Hissedilen Sıcaklık (°C)",
@@ -297,23 +308,49 @@ hourly_forecast_df = pd.DataFrame(
         ]
         )
 
+#drive.mount('/content/drive')
+
+for city in location.keys():
+    with pd.ExcelWriter(f'{city}.xlsx') as writer:  
+        instant_df.to_excel(
+            writer,
+            sheet_name='Instant',
+            index=False
+            )
+        hourly_forecast_df.to_excel(
+            writer,
+            sheet_name='Hourly Forecast',
+            index=False
+            )
+        daily_forecast_df.to_excel(
+            writer, 
+        sheet_name='Daily Forecast',
+        index=False
+        )
 flag = True
-while True:
+while flag==True:
     if flag:
         for city in location.keys():
+            instant_df = pd.read_excel(f"{city}.xlsx",sheet_name="Instant")
             instant(city)
+            hourly_forecast_df = pd.read_excel(f"{city}.xlsx",sheet_name="Hourly Forecast")
             hourly_forecast(city)
+            daily_forecast_df = pd.read_excel(f"{city}.xlsx",sheet_name="Daily Forecast")
             daily_forecast(city)
+            
             with pd.ExcelWriter(f'{city}.xlsx') as writer:  
-                instant_df[instant_df["İl"]==city].to_excel(
+                instant_df.to_excel(
                     writer, 
                 sheet_name='Instant',index=False
                 )
-                hourly_forecast_df[hourly_forecast_df["İl"]==city].to_excel(
+                hourly_forecast_df.to_excel(
                     writer, 
                 sheet_name='Hourly Forecast',index=False
                 )
-                daily_forecast_df[daily_forecast_df["İl"]==city].to_excel(
+                daily_forecast_df.to_excel(
                     writer, 
                 sheet_name='Daily Forecast',index=False
                 )
+            del instant_df
+            del hourly_forecast_df
+            del daily_forecast_df
