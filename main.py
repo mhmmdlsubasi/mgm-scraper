@@ -1,10 +1,11 @@
 from requests.packages.urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
 from datetime import datetime, timedelta
-#from google.colab import drive
+from keep_alive import keep_alive
+from pytz import timezone
 import pandas as pd
 import requests
-import time
+import os
 
 session = requests.Session()
 retry = Retry(connect=3, backoff_factor=1)
@@ -14,9 +15,7 @@ session.mount('https://', adapter)
 
 #   time converter
 def datetime_from_utc_to_local(utc_datetime):
-    now_timestamp = time.time()
-    offset = datetime.fromtimestamp(now_timestamp) - datetime.utcfromtimestamp(now_timestamp)
-    return utc_datetime + offset
+    return utc_datetime.astimezone(timezone('Turkey'))
 
 #   istno
 def data():
@@ -48,28 +47,11 @@ def instant(city):
     instant_data_r = session.get(f"{instant_url}", params=params, headers={"Origin":f"{mgm_url}"}).json()
     if instant_data_r:
         instant_data=instant_data_requests(city,instant_data_r)
-
-        if instant_data[1] != instant_last_check[city]:
-
-            instant_last_check[city] = instant_data[1]
-
-            instant_datas = [
-                instant_data[0],
-                city_instant_istno_dict[city],
-                instant_data[3],
-                instant_data[4],
-                instant_data[5],
-                instant_data[6],
-                instant_data[7],
-                instant_data[8],
-                instant_data[9],
-                instant_data[10],
-                instant_data[11],
-                instant_data[12]
-                ]
-            instant_df.loc[len(instant_df.index)] = instant_datas
-
-            print(f"instant data requests successful for {city} \n {instant_data[3]},{instant_data[4]}")
+        if instant_data[0] != instant_last_check[city]:
+            instant_last_check[city] = instant_data[0]
+            new_row = pd.Series(instant_data[1]).to_frame().T
+            new_row.to_csv(f"{path}/instant/{city}.csv", mode='a', header=False, index=False)
+        return "I'm busy now. I'm saving instant data."
     else:
         print("instant_data_requests failed")
 def instant_data_requests(city,instant_data_requests):
@@ -86,10 +68,9 @@ def instant_data_requests(city,instant_data_requests):
     timer = datetime_from_utc_to_local(datetime.strptime(last_check,"%Y-%m-%dT%H:%M:%S.%fZ"))
     date = format(timer,"%d/%m/%Y")
     clock = format(timer,"%H:%M:%S")
-    return [
+    return [last_check,[
         city,
-        last_check,
-        timer,
+        city_instant_istno_dict[city],
         date,
         clock,
         sicaklik,
@@ -100,7 +81,7 @@ def instant_data_requests(city,instant_data_requests):
         ruzgarhiz,
         aktuelBasinc,
         denizeIndirgenmisBasinc
-        ]
+        ]]
 
 #   hourly forecast
 def hourly_forecast(city):
@@ -109,30 +90,14 @@ def hourly_forecast(city):
     if hourly_forecast_data_r:
         hourly_forecast_data = hourly_forecast_data_requests(city,hourly_forecast_data_r,1)
 
-        if hourly_forecast_data[1] != hourly_forecast_last_check[city]:
+        if hourly_forecast_data[0] != hourly_forecast_last_check[city]:
                 
-            hourly_forecast_last_check[city] = hourly_forecast_data[1]
+            hourly_forecast_last_check[city] = hourly_forecast_data[0]
             for i in range(0,len(hourly_forecast_data_r[0]["tahmin"])):
-                hourly_forecast_data = hourly_forecast_data_requests(city,hourly_forecast_data_r,i)
-                hourly_forecasts = [
-                    hourly_forecast_data[0],
-                    city_hourly_forecast_istno_dict[city],
-                    hourly_forecast_data[3],
-                    hourly_forecast_data[8],
-                    hourly_forecast_data[9],
-                    hourly_forecast_data[7],
-                    hourly_forecast_data[10],
-                    hourly_forecast_data[11],
-                    hourly_forecast_data[12],
-                    hourly_forecast_data[13],
-                    hourly_forecast_data[14],
-                    hourly_forecast_data[15],
-                    hourly_forecast_data[16],
-
-                    ]
-                hourly_forecast_df.loc[len(hourly_forecast_df.index)] = hourly_forecasts
-                
-            print(f"hourly forecast data requests successful for {city} \n {hourly_forecast_data[3]},{hourly_forecast_data[4]}")
+                hourly_forecast_data = hourly_forecast_data_requests(city,hourly_forecast_data_r,i)   
+                new_row = pd.Series(hourly_forecast_data[1]).to_frame().T
+                new_row.to_csv(f"{path}/hourly_forecast/{city}.csv", mode='a', header=False, index=False)
+            return "I'm busy now. I'm saving hourly forecast data."
     else:
         print("hourly forecast data requests failed")
 def hourly_forecast_data_requests(city,hourly_forecast_data_requests,i):
@@ -156,14 +121,11 @@ def hourly_forecast_data_requests(city,hourly_forecast_data_requests,i):
     hourly_forecast_tarih_date = format(hourly_forecast_tarih_convert,"%d/%m/%Y")
     hourly_forecast_tarih_baslangic_clock = format(hourly_forecast_tarih_convert - timedelta(hours=3),"%H:%M:%S")
     hourly_forecast_tarih_bitis_clock = format(hourly_forecast_tarih_convert,"%H:%M:%S")
-    return [
+    return [hourly_forecast_last_check,[
         city,
-        hourly_forecast_last_check,
-        hourly_forecast_last_check_convert,
+        city_hourly_forecast_istno_dict[city],
         hourly_forecast_last_check_date,
         hourly_forecast_last_check_clock,
-        hourly_forecast_tarih,
-        hourly_forecast_tarih_convert,
         hourly_forecast_tarih_date,
         hourly_forecast_tarih_baslangic_clock,
         hourly_forecast_tarih_bitis_clock,
@@ -174,7 +136,7 @@ def hourly_forecast_data_requests(city,hourly_forecast_data_requests,i):
         hourly_forecast_ruzgar_yonu,
         hourly_forecast_ruzgarhiz,
         hourly_forecast_max_ruzgarhiz
-        ]
+        ]]
 
 #   daily forecast
 def daily_forecast(city):
@@ -183,33 +145,19 @@ def daily_forecast(city):
     if daily_forecast_data_r:
         daily_forecast_data = daily_forecast_data_requests(city,daily_forecast_data_r,1)
 
-        if daily_forecast_data[1] != daily_forecast_last_check[city]:
-                
-            daily_forecast_last_check[city] = daily_forecast_data[1]
+        if daily_forecast_data[0] != daily_forecast_last_check[city]: 
+            daily_forecast_last_check[city] = daily_forecast_data[0]
             for i in [1,2,3,4,5]:
                 daily_forecast_data = daily_forecast_data_requests(city,daily_forecast_data_r,i)
-                daily_forecasts = [
-                    daily_forecast_data[0],
-                    city_instant_istno_dict[city],
-                    format(daily_forecast_data_requests(city,daily_forecast_data_r,1)[2] - timedelta(days=1),"%d-%m-%Y"),
-                    daily_forecast_data[4],
-                    daily_forecast_data[3],
-                    daily_forecast_data[5],
-                    daily_forecast_data[6],
-                    daily_forecast_data[7],
-                    daily_forecast_data[8],
-                    daily_forecast_data[9],
-                    daily_forecast_data[10],
-                    daily_forecast_data[11]
-                    ]
-                daily_forecast_df.loc[len(daily_forecast_df.index)] = daily_forecasts
-
-
-            print(f"daily forecast data requests successful for {city} \n {daily_forecast_data[3]},{daily_forecast_data[4]}")
+                new_row = pd.Series(daily_forecast_data[1]).to_frame().T
+                new_row.to_csv(f"{path}/daily_forecast/{city}.csv", mode='a', header=False, index=False)
+            return "I'm busy now. I'm saving daily forecast data."
     else:
         print("daily forecast data requests failed")
 def daily_forecast_data_requests(city,daily_forecast_data_requests,i):
     
+    daily_forecast_check = daily_forecast_data_requests[0]["tarihGun1"]
+
     daily_forecast_last_check = daily_forecast_data_requests[0][f"tarihGun{i}"]
     daily_forecast_hadise = daily_forecast_data_requests[0][f"hadiseGun{i}"]
     daily_forecast_min_sicaklik = daily_forecast_data_requests[0][f"enDusukGun{i}"]
@@ -222,10 +170,14 @@ def daily_forecast_data_requests(city,daily_forecast_data_requests,i):
     daily_forecast_timer = datetime_from_utc_to_local(datetime.strptime(daily_forecast_last_check,"%Y-%m-%dT%H:%M:%S.%fZ"))
     daily_forecast_date = format(daily_forecast_timer,"%d/%m/%Y")
     daily_forecast_clock = format(daily_forecast_timer,"%H:%M:%S")
-    return [
+
+    daily_forecast_check_timer = datetime_from_utc_to_local(datetime.strptime(daily_forecast_check,"%Y-%m-%dT%H:%M:%S.%fZ"))
+    daily_forecast_check_date = format(daily_forecast_check_timer,"%d/%m/%Y")
+    daily_forecast_check_clock = format(daily_forecast_check_timer,"%H:%M:%S")
+    return [daily_forecast_last_check,[
         city,
-        daily_forecast_last_check,
-        daily_forecast_timer,
+        city_instant_istno_dict[city],
+        format(daily_forecast_check_timer - timedelta(days=1),"%d-%m-%Y"),
         daily_forecast_date,
         daily_forecast_clock,
         daily_forecast_hadise,
@@ -235,29 +187,29 @@ def daily_forecast_data_requests(city,daily_forecast_data_requests,i):
         daily_forecast_max_nem,
         daily_forecast_ruzgaryon,
         daily_forecast_ruzgarhiz
-        ]
+        ]]
 
-#   request links
+#  request links
 mgm_url = "https://www.mgm.gov.tr/"
 iller = "https://servis.mgm.gov.tr/web/merkezler/iller"
 instant_url = "https://servis.mgm.gov.tr/web/sondurumlar?"
 daily_forecast_url = "https://servis.mgm.gov.tr/web/tahminler/gunluk?"
 hourly_forecast_url = "https://servis.mgm.gov.tr/web/tahminler/saatlik?"
 
-#   create istno dict
+#   create istno dicts
 city_instant_istno_dict=data()[1]
 city_daily_forecast_istno_dict = data()[2]
 city_hourly_forecast_istno_dict = data()[3]
 
-#   create working area
+#   create working areas
 location = data()[2]
 
-#   create last check dict
+#   create last check dicts
 instant_last_check = location.copy()
 daily_forecast_last_check = location.copy()
 hourly_forecast_last_check = location.copy()
 
-#   create empty DataFrame
+#   create empty DataFrames
 instant_df = pd.DataFrame(
     columns=[
         "İl",
@@ -279,8 +231,8 @@ daily_forecast_df = pd.DataFrame(
         "İl",
         "İstasyon Numarası",
         "Tarih",
-        "Saat",
         "Tahmin Tarihi",
+        "Tahmin Saati",
         "Hadise",
         "Min. Sıcaklık (°C)",
         "Max. Sıcaklık (°C)",
@@ -295,9 +247,10 @@ hourly_forecast_df = pd.DataFrame(
         "İl",
         "İstasyon Numarası",
         "Tarih",
+        "Saat",
+        "Tahmin Tarihi",
         "Başlangıç Saati",
         "Bitiş Saati",
-        "Tahmin Tarihi",
         "Beklenen Hadise",
         "Sıcaklık (°C)",
         "Hissedilen Sıcaklık (°C)",
@@ -308,49 +261,27 @@ hourly_forecast_df = pd.DataFrame(
         ]
         )
 
-#drive.mount('/content/drive')
+path = "output"
 
 for city in location.keys():
-    with pd.ExcelWriter(f'{city}.xlsx') as writer:  
-        instant_df.to_excel(
-            writer,
-            sheet_name='Instant',
-            index=False
-            )
-        hourly_forecast_df.to_excel(
-            writer,
-            sheet_name='Hourly Forecast',
-            index=False
-            )
-        daily_forecast_df.to_excel(
-            writer, 
-        sheet_name='Daily Forecast',
-        index=False
-        )
+    if not os.path.exists(f"{path}/instant/{city}.csv"):
+        instant_df.to_csv(f"{path}/instant/{city}.csv", index=False)
+
+    if not os.path.exists(f"{path}/hourly_forecast/{city}.csv"):
+        hourly_forecast_df.to_csv(f"{path}/hourly_forecast/{city}.csv", index=False)
+
+    if not os.path.exists(f"{path}/daily_forecast/{city}.csv"):
+        daily_forecast_df.to_csv(f"{path}/daily_forecast/{city}.csv", index=False)
+print("empty files are ready.")
+keep_alive()
+
 flag = True
+
+print("We are ready. Let's go!")
 while flag==True:
     if flag:
         for city in location.keys():
-            instant_df = pd.read_excel(f"{city}.xlsx",sheet_name="Instant")
             instant(city)
-            hourly_forecast_df = pd.read_excel(f"{city}.xlsx",sheet_name="Hourly Forecast")
             hourly_forecast(city)
-            daily_forecast_df = pd.read_excel(f"{city}.xlsx",sheet_name="Daily Forecast")
             daily_forecast(city)
             
-            with pd.ExcelWriter(f'{city}.xlsx') as writer:  
-                instant_df.to_excel(
-                    writer, 
-                sheet_name='Instant',index=False
-                )
-                hourly_forecast_df.to_excel(
-                    writer, 
-                sheet_name='Hourly Forecast',index=False
-                )
-                daily_forecast_df.to_excel(
-                    writer, 
-                sheet_name='Daily Forecast',index=False
-                )
-            del instant_df
-            del hourly_forecast_df
-            del daily_forecast_df
