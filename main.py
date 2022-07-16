@@ -174,7 +174,7 @@ def daily_forecast_data_requests(city,daily_forecast_data_requests,i):
     daily_forecast_check_timer = datetime_from_utc_to_local(datetime.strptime(daily_forecast_check,"%Y-%m-%dT%H:%M:%S.%fZ"))
     daily_forecast_check_date = format(daily_forecast_check_timer,"%d/%m/%Y")
     daily_forecast_check_clock = format(daily_forecast_check_timer,"%H:%M:%S")
-    return [daily_forecast_last_check,[
+    return [daily_forecast_check,[
         city,
         city_instant_istno_dict[city],
         format(daily_forecast_check_timer - timedelta(days=1),"%d-%m-%Y"),
@@ -272,6 +272,15 @@ for city in location.keys():
 
     if not os.path.exists(f"{path}/daily_forecast/{city}.csv"):
         daily_forecast_df.to_csv(f"{path}/daily_forecast/{city}.csv", index=False)
+    
+    new_row = pd.Series(["-","-","-","-","-","-","-","-","-","-","-","-"]).to_frame().T
+    new_row.to_csv(f"{path}/instant/{city}.csv", mode='a', header=False, index=False)
+
+    new_row = pd.Series(["-","-","-","-","-","-","-","-","-","-","-","-","-","-"]).to_frame().T
+    new_row.to_csv(f"{path}/hourly_forecast/{city}.csv", mode='a', header=False, index=False)
+
+    new_row = pd.Series(["-","-","-","-","-","-","-","-","-","-","-","-"]).to_frame().T
+    new_row.to_csv(f"{path}/daily_forecast/{city}.csv", mode='a', header=False, index=False)
 print("empty files are ready.")
 keep_alive()
 
